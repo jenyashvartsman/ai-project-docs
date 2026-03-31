@@ -351,8 +351,8 @@ Avoid:
 
 Follow the chosen styling guide.
 
-- Use BEM naming from [style-bem.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/style-bem.md) when the feature uses BEM.
-- Use utility-first class composition from [style-tailwind.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/style-tailwind.md) when the feature uses Tailwind.
+- Use BEM naming from [style-bem.md](../../optional/by-strategy/style-bem.md) when the feature uses BEM.
+- Use utility-first class composition from [style-tailwind.md](../../optional/by-strategy/style-tailwind.md) when the feature uses Tailwind.
 
 Do not mix unrelated naming styles inside the same component without a reason.
 

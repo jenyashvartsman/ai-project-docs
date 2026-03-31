@@ -14,10 +14,10 @@ That is why the React state guide set is not a one-to-one copy of the Angular on
 
 ## Available Strategies
 
-- [state-feature-hooks.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/react/optional/by-strategy/state-feature-hooks.md)
-- [state-tanstack-query.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/react/optional/by-strategy/state-tanstack-query.md)
-- [state-zustand.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/react/optional/by-strategy/state-zustand.md)
-- [state-redux-toolkit.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/react/optional/by-strategy/state-redux-toolkit.md)
+- [state-feature-hooks.md](./state-feature-hooks.md)
+- [state-tanstack-query.md](./state-tanstack-query.md)
+- [state-zustand.md](./state-zustand.md)
+- [state-redux-toolkit.md](./state-redux-toolkit.md)
 
 ## Core Principle
 

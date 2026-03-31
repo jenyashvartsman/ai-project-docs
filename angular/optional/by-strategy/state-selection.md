@@ -28,9 +28,9 @@ Prefer:
 
 Use these guides together:
 
-- [state-facade.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/state-facade.md)
-- [state-ngrx-signal-store.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/state-ngrx-signal-store.md)
-- [state-ngrx-store.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/state-ngrx-store.md)
+- [state-facade.md](./state-facade.md)
+- [state-ngrx-signal-store.md](./state-ngrx-signal-store.md)
+- [state-ngrx-store.md](./state-ngrx-store.md)
 
 ## Option 1: Facade-Only State
 
@@ -61,7 +61,7 @@ Good examples:
 
 Choose:
 
-- [state-facade.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/state-facade.md)
+- [state-facade.md](./state-facade.md)
 
 ## Option 2: NgRx Signal Store
 
@@ -96,7 +96,7 @@ Good examples:
 
 Choose:
 
-- [state-ngrx-signal-store.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/state-ngrx-signal-store.md)
+- [state-ngrx-signal-store.md](./state-ngrx-signal-store.md)
 
 ## Option 3: Classic NgRx Store
 
@@ -125,7 +125,7 @@ Good examples:
 
 Choose:
 
-- [state-ngrx-store.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/optional/by-strategy/state-ngrx-store.md)
+- [state-ngrx-store.md](./state-ngrx-store.md)
 
 ## Simple Decision Rules
 
@@ -228,9 +228,9 @@ State choice does not change these core rules:
 
 Use together with:
 
-- [feature.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/required/always-on/feature.md)
-- [directories.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/required/always-on/directories.md)
-- [http-api.md](/c:/Users/jenya.shvartsman/Projects/ai-project-docs/angular/required/always-on/http-api.md)
+- [feature.md](../../required/always-on/feature.md)
+- [directories.md](../../required/always-on/directories.md)
+- [http-api.md](../../required/always-on/http-api.md)
 
 ## AI Agent Rules
 
