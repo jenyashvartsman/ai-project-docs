@@ -17,6 +17,7 @@ Current structure:
 
 ```text
 angular/
+react/
 ```
 
 Planned structure example:
