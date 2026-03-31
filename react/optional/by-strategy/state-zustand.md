@@ -16,6 +16,8 @@ Use Zustand for shared client state, not as the default home for all state in th
 page/container -> zustand store -> api
 ```
 
+When route params or search params are part of feature state, the Zustand state layer should own them.
+
 ## Use When
 
 Use Zustand when:
@@ -24,6 +26,7 @@ Use Zustand when:
 - a custom hook is becoming too crowded
 - several actions update the same feature state
 - a dedicated store boundary improves clarity
+- the feature needs one shared owner for URL-backed client state
 
 Do not use Zustand just because multiple siblings need one boolean. Lift that state first and keep it simple.
 
@@ -64,8 +67,23 @@ type OrdersState = {
   selectOrder: (orderId: string | null) => void;
   loadOrders: () => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
+  initializeFromUrl: (input: {
+    orderId: string | null;
+    status: string | null;
+  }) => void;
 };
 ```
+
+## URL State Rule
+
+Use route params and search params as part of feature state when the URL should describe the current feature view.
+
+Rules:
+
+- the store should own normalized URL-backed state when several components depend on it
+- a small feature hook may sit on top of Zustand and translate router state into store actions
+- page components should not re-own URL parsing if the store already treats it as feature state
+- presentation components must not read router state directly
 
 ## Deep Example
 
@@ -85,6 +103,7 @@ type OrdersState = {
   error: string | null;
   setActiveFilter: (filter: OrdersFilter) => void;
   selectOrder: (orderId: string | null) => void;
+  initializeFromUrl: (input: { orderId: string | null; status: string | null }) => void;
   loadOrders: () => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
 };
@@ -96,6 +115,12 @@ export const useOrdersStore = create<OrdersState>((set, get) => ({
   isLoading: false,
   isDeletingId: null,
   error: null,
+  initializeFromUrl({ orderId, status }) {
+    set({
+      selectedOrderId: orderId,
+      activeFilter: status === 'open' || status === 'closed' ? status : 'all',
+    });
+  },
   setActiveFilter(filter) {
     set({ activeFilter: filter });
   },
@@ -157,17 +182,28 @@ export const useVisibleOrders = () =>
 
 ```tsx
 import { useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useOrdersStore } from '../stores/orders-store';
 import { useVisibleOrders } from '../stores/orders-selectors';
 
 export function OrdersPage() {
+  const { orderId } = useParams<{ orderId?: string }>();
+  const [searchParams] = useSearchParams();
   const visibleOrders = useVisibleOrders();
   const isLoading = useOrdersStore((state) => state.isLoading);
   const error = useOrdersStore((state) => state.error);
   const activeFilter = useOrdersStore((state) => state.activeFilter);
+  const initializeFromUrl = useOrdersStore((state) => state.initializeFromUrl);
   const setActiveFilter = useOrdersStore((state) => state.setActiveFilter);
   const loadOrders = useOrdersStore((state) => state.loadOrders);
   const deleteOrder = useOrdersStore((state) => state.deleteOrder);
+
+  useEffect(() => {
+    initializeFromUrl({
+      orderId: orderId ?? null,
+      status: searchParams.get('status'),
+    });
+  }, [initializeFromUrl, orderId, searchParams]);
 
   useEffect(() => {
     void loadOrders();
@@ -214,6 +250,7 @@ When creating or updating Zustand state, AI agents must follow these rules:
 3. Keep actions explicit and readable.
 4. Use selectors so components subscribe narrowly.
 5. Do not create one giant app store by default.
+6. Let the Zustand state layer own URL-backed feature state when the URL is part of the feature contract.
 
 ## Default Standard
 

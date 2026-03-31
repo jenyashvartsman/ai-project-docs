@@ -35,6 +35,8 @@ Use the required docs as the default baseline for every React app in this repo. 
 - [state-redux-toolkit.md](./optional/by-strategy/state-redux-toolkit.md)
 - [state-selection.md](./optional/by-strategy/state-selection.md)
 
+State strategy guidance in this repo treats route params and search params as valid feature-state inputs when the URL should represent the current feature view.
+
 ## Optional / By App Type
 
 - [auth-authorization.md](./optional/by-app-type/auth-authorization.md)

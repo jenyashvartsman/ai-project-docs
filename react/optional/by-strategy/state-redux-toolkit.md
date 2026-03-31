@@ -16,6 +16,8 @@ Use Redux Toolkit when the complexity is in state transitions, not just in rende
 page/container -> hooks/selectors -> redux store -> thunks or listeners -> api
 ```
 
+When route params or search params are part of feature state, Redux state should own the normalized URL-backed values.
+
 ## Use When
 
 Use Redux Toolkit when:
@@ -24,6 +26,7 @@ Use Redux Toolkit when:
 - several parts of the UI react to the same events
 - action history and explicit event modeling improve maintainability
 - async flows interact in ways that a simple hook or lightweight store would obscure
+- router-driven state changes need to participate in reducer-driven workflows
 
 ## Recommended Structure
 
@@ -56,6 +59,17 @@ export type OrdersState = {
   error: string | null;
 };
 ```
+
+## URL State Rule
+
+Use route params and search params as part of feature state when URL changes should participate in the Redux workflow.
+
+Rules:
+
+- Redux state should store the normalized route/search param values when they matter to the feature
+- route parsing should happen in a state-layer entry point such as a feature hook that dispatches Redux actions
+- page components should not own a second copy of URL-backed state
+- presentation components must not read router state directly
 
 ## Deep Example
 
@@ -100,6 +114,16 @@ const ordersSlice = createSlice({
   name: 'orders',
   initialState,
   reducers: {
+    initializeFromUrl(
+      state,
+      action: PayloadAction<{ orderId: string | null; status: string | null }>
+    ) {
+      state.selectedOrderId = action.payload.orderId;
+      state.activeFilter =
+        action.payload.status === 'open' || action.payload.status === 'closed'
+          ? action.payload.status
+          : 'all';
+    },
     setActiveFilter(state, action: PayloadAction<OrdersFilter>) {
       state.activeFilter = action.payload;
     },
@@ -140,7 +164,7 @@ const ordersSlice = createSlice({
   },
 });
 
-export const { setActiveFilter, selectOrder } = ordersSlice.actions;
+export const { initializeFromUrl, setActiveFilter, selectOrder } = ordersSlice.actions;
 export const ordersReducer = ordersSlice.reducer;
 ```
 
@@ -167,9 +191,12 @@ export const selectVisibleOrders = (state: RootState) => {
 ## Container Usage Example
 
 ```tsx
+import { useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../app/store-hooks';
 import {
   deleteOrder,
+  initializeFromUrl,
   loadOrders,
   setActiveFilter,
 } from '../state/orders-slice';
@@ -179,9 +206,20 @@ import {
 } from '../state/orders-selectors';
 
 export function OrdersPage() {
+  const { orderId } = useParams<{ orderId?: string }>();
+  const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   const orders = useAppSelector(selectVisibleOrders);
   const error = useAppSelector(selectOrdersError);
+
+  useEffect(() => {
+    dispatch(
+      initializeFromUrl({
+        orderId: orderId ?? null,
+        status: searchParams.get('status'),
+      })
+    );
+  }, [dispatch, orderId, searchParams]);
 
   useEffect(() => {
     void dispatch(loadOrders());
@@ -224,6 +262,7 @@ When creating or updating Redux Toolkit state, AI agents must follow these rules
 3. Keep selectors and async flows explicit.
 4. Keep components consuming selectors and dispatch helpers, not transport code.
 5. Do not use Redux Toolkit for simple local state.
+6. Let Redux own normalized URL-backed feature state when route/search params are part of the feature contract.
 
 ## Default Standard
 

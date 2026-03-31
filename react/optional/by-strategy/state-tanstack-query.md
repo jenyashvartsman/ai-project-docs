@@ -15,6 +15,8 @@ TanStack Query is the preferred strategy when the feature is dominated by remote
 
 Use TanStack Query for server state. Keep local UI state in the page, component, feature hook, or a small client-state store.
 
+When route params or search params shape the remote data view, the feature query hook should own them as part of the feature boundary.
+
 Do not treat TanStack Query as a replacement for all client state.
 
 ## Architecture
@@ -32,6 +34,7 @@ Use TanStack Query when:
 - caching and refetch rules matter
 - invalidation after mutations matters
 - loading, stale, success, and error states should follow one standard
+- route/search params directly shape query keys or request params
 
 ## Recommended Structure
 
@@ -80,8 +83,9 @@ const ordersKeys = {
 };
 
 export function useOrdersQuery() {
-  const [activeFilter, setActiveFilter] = useState<OrdersFilter>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const activeFilter = (searchParams.get('status') as OrdersFilter | null) ?? 'all';
 
   const ordersQuery = useQuery({
     queryKey: ordersKeys.list(activeFilter),
@@ -100,6 +104,20 @@ export function useOrdersQuery() {
   const error = ordersQuery.isError ? 'Unable to load orders.' : null;
 
   const deletingOrderId = deleteOrderMutation.variables ?? null;
+
+  function setActiveFilter(nextFilter: OrdersFilter) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+
+      if (nextFilter === 'all') {
+        next.delete('status');
+      } else {
+        next.set('status', nextFilter);
+      }
+
+      return next;
+    });
+  }
 
   return {
     orders,
@@ -169,6 +187,8 @@ Prefer feature-level query hooks such as:
 
 This keeps query keys, invalidation rules, and error translation owned by the feature instead of scattered across pages.
 
+It also keeps URL-backed query state owned by the query hook when the URL shapes the query contract.
+
 ## What TanStack Query Should Not Own
 
 Do not use TanStack Query for:
@@ -198,6 +218,7 @@ When creating or updating React server-state code, AI agents must follow these r
 3. Wrap query and mutation logic in feature hooks.
 4. Keep local UI state outside query caches.
 5. Translate query errors into stable UI messages at the feature boundary.
+6. Let the feature query hook own route/search params when they determine query keys or request params.
 
 ## Default Standard
 

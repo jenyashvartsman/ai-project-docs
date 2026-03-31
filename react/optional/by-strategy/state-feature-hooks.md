@@ -17,6 +17,8 @@ This strategy is usually the best starting point for:
 - forms with modest workflow complexity
 - dashboard pages with one dominant data flow
 
+When route params or search params are part of feature state, the feature hook should own them.
+
 ## Architecture
 
 ```text
@@ -45,6 +47,7 @@ A feature hook may:
 - shape data for the page
 - hold small feature-local UI state
 - prepare derived values for presentation components
+- coordinate route params and search params when the URL is part of the feature contract
 
 A feature hook should not:
 
@@ -71,21 +74,48 @@ features/
       orders-query.ts
 ```
 
+## URL State Rule
+
+Use route params and search params as part of feature state when the user should be able to:
+
+- refresh and keep the same view
+- share or bookmark the current state
+- use browser back and forward for feature navigation
+- land directly on a selected item, filter set, tab, sort, search term, or page
+
+Typical URL-backed state:
+
+- route params for entity identity and nested context
+- search params for filters, sorting, search, pagination, tabs, and view mode
+
+Rules:
+
+- the feature hook should own `useParams`, `useSearchParams`, or equivalent router state when URL state is part of the feature contract
+- page components should call the hook and render the returned state rather than re-parsing URL state themselves
+- presentation components must not read router state directly
+- keep parsing and normalization in one place so invalid params do not leak into the UI
+- avoid keeping a conflicting second source of truth for URL-backed state
+
 ## Deep Example
 
 ```ts
 import { useEffect, useMemo, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { deleteOrderRequest, getOrders } from '../api/orders-api';
 import type { OrderDto } from '../types/order.dto';
 
 type OrdersFilter = 'all' | 'open' | 'closed';
 
 export function useOrders() {
+  const { orderId } = useParams<{ orderId?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<OrderDto[]>([]);
-  const [activeFilter, setActiveFilter] = useState<OrdersFilter>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const activeFilter = (searchParams.get('status') as OrdersFilter | null) ?? 'all';
+  const selectedOrderId = orderId ?? null;
 
   useEffect(() => {
     void loadOrders();
@@ -104,7 +134,9 @@ export function useOrders() {
     setError(null);
 
     try {
-      const nextOrders = await getOrders();
+      const nextOrders = await getOrders({
+        status: activeFilter === 'all' ? undefined : activeFilter,
+      });
       setOrders(nextOrders);
     } catch {
       setError('Unable to load orders.');
@@ -127,9 +159,24 @@ export function useOrders() {
     }
   }
 
+  function setActiveFilter(nextFilter: OrdersFilter) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+
+      if (nextFilter === 'all') {
+        next.delete('status');
+      } else {
+        next.set('status', nextFilter);
+      }
+
+      return next;
+    });
+  }
+
   return {
     orders: visibleOrders,
     activeFilter,
+    selectedOrderId,
     isLoading,
     isDeletingId,
     error,
@@ -193,6 +240,9 @@ Keep logic in the page when it is:
 - layout-specific
 - only meaningful for one page composition
 
+Exception:
+When route or search params are part of feature state, let the feature hook own them instead of duplicating that logic in the page.
+
 ## When To Split One Hook Into Several
 
 Split when:
@@ -226,7 +276,7 @@ When creating or updating React state, AI agents must follow these rules:
 1. Default to feature hooks before introducing a store.
 2. Keep hooks focused on one feature or route flow.
 3. Return view-ready state and explicit actions.
-4. Keep routing and composition in the page unless the hook genuinely owns that concern.
+4. Let the hook own route params and search params when they are part of feature state.
 5. Do not move simple feature state into Zustand or Redux too early.
 
 ## Default Standard
