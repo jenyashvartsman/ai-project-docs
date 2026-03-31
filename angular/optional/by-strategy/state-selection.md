@@ -12,11 +12,15 @@ This guide applies to these state options:
 - NgRx Signal Store
 - classic NgRx Store
 
+Across all three options, route params and query params are valid feature state inputs when the URL should reflect the current view.
+
 ## Core Principle
 
 Choose the simplest state strategy that matches the feature complexity.
 
 Do not start with the most powerful option by default.
+
+When state should be bookmarkable, shareable, recover on refresh, or work cleanly with browser navigation, keep that state in the URL and let the chosen state layer coordinate it.
 
 Prefer:
 
@@ -51,11 +55,13 @@ Use facade-only state when:
 - signals inside the facade are enough
 - the feature does not need a large event model
 - the team wants the lightest implementation
+- route/query param syncing is simple enough to keep in one facade
 
 Good examples:
 
 - profile settings
 - orders list with filtering and delete
+- orders list with URL-backed search, status, and page query params
 - dashboard summary cards
 - session or current-user state
 
@@ -86,6 +92,7 @@ Use Signal Store when:
 - the feature benefits from a dedicated state container
 - the team wants signals-first state primitives
 - the feature is still mostly local and does not need full action or reducer structure
+- URL-backed filters, tabs, sort, or pagination need a richer local container
 
 Good examples:
 
@@ -93,6 +100,7 @@ Good examples:
 - editable wizard-like workflows
 - feature modules with multiple coordinated UI states
 - dashboards with several derived state slices
+- search pages where query params and local state must stay in sync
 
 Choose:
 
@@ -115,6 +123,7 @@ Use classic NgRx Store when:
 - multiple parts of the feature react to the same events
 - the feature needs reducers, actions, selectors, and effects as separate concerns
 - long-term complexity is high enough to justify the extra structure
+- router-driven state changes participate in broader action/effect workflows
 
 Good examples:
 
@@ -122,6 +131,7 @@ Good examples:
 - advanced multi-step business processes
 - domains with many asynchronous side effects
 - highly collaborative feature areas with many state transitions
+- complex search or workspace screens where URL state drives multiple coordinated effects
 
 Choose:
 
@@ -146,6 +156,7 @@ If you are unsure, choose facade-only state first.
 - the UI flow is straightforward
 - there is no strong need for action and reducer structure
 - the feature should stay lightweight
+- route/query param syncing is small and feature-local
 
 ### Choose Signal Store When
 
@@ -154,6 +165,7 @@ If you are unsure, choose facade-only state first.
 - multiple related state slices need to live together
 - signals are still the natural fit
 - the team wants more structure without full NgRx Store ceremony
+- URL state and in-memory state need richer coordination
 
 ### Choose Classic NgRx Store When
 
@@ -162,6 +174,7 @@ If you are unsure, choose facade-only state first.
 - the feature has many transitions and edge cases
 - long-term maintainability benefits from reducer and action separation
 - the complexity is high enough to justify the overhead
+- router-driven state changes must participate in wider event-driven workflows
 
 ## What Not To Use By Default
 
@@ -225,6 +238,7 @@ State choice does not change these core rules:
 - DTOs stay in `data-access/dto`
 - components do not call `HttpClient` directly
 - route-level pages remain the main container entry points
+- URL params and query params are still part of the feature state design when the view depends on them
 
 Use together with:
 
@@ -242,6 +256,7 @@ When choosing or generating state architecture, AI agents must follow these rule
 4. Do not introduce a heavier state architecture without a concrete reason in the feature.
 5. Keep the state choice local to the feature unless the concern is truly global.
 6. Keep components aligned with the container and presentation split regardless of state strategy.
+7. Treat route params and query params as first-class state inputs when the feature must support deep links, shareable views, or refresh restore.
 
 ## Default Standard
 

@@ -93,6 +93,7 @@ Do not use facades for:
 5. Backend transport details belong in `data-access`, not in the facade.
 6. The facade API should remain stable even if API orchestration or local state implementation changes.
 7. Prefer signals over observables for facade-owned state unless RxJS is clearly required.
+8. Treat route params and query params as first-class state inputs when the URL should represent the current feature view.
 
 ## Responsibilities
 
@@ -102,6 +103,7 @@ A feature facade may:
 - expose derived UI-ready state
 - trigger loading, refreshing, saving, deleting, and filtering actions
 - coordinate API calls and feature-local state
+- coordinate route params and query params with feature state
 - translate UI intents into feature commands
 - handle feature initialization workflows
 
@@ -121,8 +123,10 @@ Good API examples:
 
 - `orders()`
 - `selectedOrder()`
+- `selectedOrderId()`
 - `isLoading()`
 - `error()`
+- `filters()`
 - `loadOrders()`
 - `selectOrder(id: string)`
 - `updateFilters(filters: OrdersFilter)`
@@ -230,7 +234,7 @@ export class OrdersListPageComponent {
   readonly isLoading = this.ordersFacade.isLoading;
 
   ngOnInit(): void {
-    this.ordersFacade.loadOrders();
+    this.ordersFacade.initialize();
   }
 }
 ```
@@ -290,6 +294,28 @@ Why:
 
 Do not create meaningless derived flags only because the facade can.
 
+## URL State Rule
+
+Use route params and query params as part of feature state when the user should be able to:
+
+- refresh and keep the same view
+- share or bookmark the current state
+- use browser back and forward for feature navigation
+- land directly on a selected item, filter set, tab, sort, search term, or page
+
+Typical URL-backed state:
+
+- route params for entity identity and hierarchical selection such as `orders/:orderId`
+- query params for filters, sort, search, pagination, tabs, and view mode
+
+Rules:
+
+- the facade should own route/query param reads when URL state is part of the feature contract
+- the facade may also own router writes when that keeps feature behavior cohesive
+- presentation components must not read `ActivatedRoute` directly
+- do not duplicate URL-backed state in unrelated writable signals when the URL is the source of truth
+- keep parsing and normalization in one place so invalid params do not leak through the UI
+
 ## Initialization
 
 Use a facade method for feature initialization when the route/page needs coordinated startup behavior.
@@ -298,8 +324,11 @@ Example:
 
 ```ts
 initialize(): void {
+  this._selectedOrderId.set(this.route.snapshot.paramMap.get('orderId'));
+  this._filters.set({
+    status: this.route.snapshot.queryParamMap.get('status') ?? 'all',
+  });
   this.loadOrders();
-  this.loadAvailableFilters();
 }
 ```
 
@@ -307,6 +336,7 @@ Rules:
 
 - initialization should be explicit
 - route-level pages may call `initialize()` on load
+- initialization may read route params and query params inside the facade
 - avoid hidden constructor side effects when possible
 - keep initialization synchronous unless the caller truly needs to await it
 
@@ -384,6 +414,7 @@ Rules:
 
 ```ts
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import { OrdersApiService } from '../data-access/api/orders-api.service';
 import { OrdersFilter } from '../models/order-filter.model';
@@ -392,6 +423,8 @@ import { Order } from '../models/order.model';
 @Injectable()
 export class OrdersFacade {
   private readonly ordersApi = inject(OrdersApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   private readonly _orders = signal<Order[]>([]);
   private readonly _selectedOrderId = signal<string | null>(null);
@@ -400,8 +433,10 @@ export class OrdersFacade {
   private readonly _filters = signal<OrdersFilter>({ status: 'all' });
 
   readonly orders = this._orders.asReadonly();
+  readonly selectedOrderId = this._selectedOrderId.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
   readonly error = this._error.asReadonly();
+  readonly filters = this._filters.asReadonly();
 
   readonly selectedOrder = computed(() =>
     this._orders().find((order) => order.id === this._selectedOrderId()) ?? null
@@ -411,6 +446,14 @@ export class OrdersFacade {
   readonly emptyStateVisible = computed(
     () => !this.isLoading() && !this.hasOrders() && !this.error()
   );
+
+  initialize(): void {
+    this._selectedOrderId.set(this.route.snapshot.paramMap.get('orderId'));
+    this._filters.set({
+      status: this.route.snapshot.queryParamMap.get('status') ?? 'all',
+    });
+    this.loadOrders();
+  }
 
   loadOrders(): void {
     this._isLoading.set(true);
@@ -425,7 +468,7 @@ export class OrdersFacade {
       )
       .subscribe({
         next: (orders) => {
-        this._orders.set(orders);
+          this._orders.set(orders);
         },
         error: () => {
           this._error.set('Failed to load orders.');
@@ -435,10 +478,14 @@ export class OrdersFacade {
 
   selectOrder(id: string): void {
     this._selectedOrderId.set(id);
+    void this.router.navigate(['/orders', id]);
   }
 
   updateFilters(filters: OrdersFilter): void {
     this._filters.set(filters);
+    void this.router.navigate(['/orders'], {
+      queryParams: filters,
+    });
     this.loadOrders();
   }
 
@@ -659,7 +706,8 @@ AI agents must follow these rules when generating or editing Angular feature sta
 10. Add derived state only when it reduces repeated UI logic.
 11. Do not introduce repository or mapper layers by default.
 12. Avoid generic methods like `setState`, `patch`, or `dispatchAction`.
-13. If uncertain, design the facade API around user intent and feature language.
+13. Model route params and query params explicitly when the URL is part of the feature contract.
+14. If uncertain, design the facade API around user intent and feature language.
 
 ## Decision Matrix
 
@@ -669,6 +717,7 @@ AI agents must follow these rules when generating or editing Angular feature sta
 | Feature-local state container | `state/<feature>.facade.ts` |
 | Public state API for components | `state/<feature>.facade.ts` |
 | Route/page orchestration | page component via facade calls |
+| URL-backed filters, selection, pagination | facade |
 | Reusable derived feature state | facade |
 | Global session or app-wide auth state | `app/core/<domain>/<domain>.facade.ts` |
 | Local ephemeral UI toggle | component-local state |

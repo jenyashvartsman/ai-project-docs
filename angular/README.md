@@ -38,6 +38,8 @@ These are selected when the app chooses a specific implementation strategy:
 - [state-ngrx-store.md](./optional/by-strategy/state-ngrx-store.md)
 - [state-selection.md](./optional/by-strategy/state-selection.md)
 
+State strategy guidance in this repo treats route params and query params as valid state sources when the URL should represent the current feature view.
+
 ## Optional / By App Type
 
 These are selected only when the app needs that concern:

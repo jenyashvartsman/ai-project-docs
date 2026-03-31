@@ -68,6 +68,7 @@ Why:
 5. Keep components away from raw action dispatch details when a facade is present.
 6. Keep selectors focused and reusable.
 7. Prefer `inject()` over constructor injection in examples and implementation.
+8. Treat route params and query params as first-class state inputs when the feature view must be represented in the URL.
 
 ## Recommended Structure
 
@@ -139,6 +140,7 @@ Rules:
 - keep state explicit
 - keep state serializable when practical
 - avoid storing obviously derivable values unless there is a strong reason
+- include URL-derived state when route params or query params are part of the feature contract
 
 ## Actions
 
@@ -230,6 +232,24 @@ Rules:
 - keep selector names explicit
 - avoid putting view math directly into many components
 
+## URL State Rule
+
+Use route params and query params as part of the feature state when the URL must capture the current workflow or view.
+
+Good fits:
+
+- route params for selected entity, workspace, or route-driven context
+- query params for filters, sort, search, tabs, and pagination
+
+Rules:
+
+- the facade or another state-layer entry point should translate router state into dispatched actions
+- reducers should store normalized URL-backed state when the feature needs it
+- effects may react to router-driven actions when URL changes must trigger loads or other workflows
+- presentation components must not read `ActivatedRoute` or dispatch router-sync actions directly
+- avoid maintaining a conflicting non-URL source of truth for state that belongs in the URL
+- keep `ActivatedRoute` reads in the state layer when route state is part of feature state
+
 ## Facade Rule
 
 When using classic NgRx Store in this repository, prefer a facade as the public API for components.
@@ -296,6 +316,10 @@ export const OrdersActions = createActionGroup({
   source: 'Orders',
   events: {
     'Load Orders': emptyProps(),
+    'Initialize From Route': props<{
+      selectedOrderId: string | null;
+      filters: OrdersFilter;
+    }>(),
     'Load Orders Success': props<{ orders: Order[] }>(),
     'Load Orders Failure': props<{ error: string }>(),
     'Update Filters': props<{ filters: OrdersFilter }>(),
@@ -337,6 +361,11 @@ export const ordersFeature = createFeature({
       ...state,
       isLoading: true,
       error: null,
+    })),
+    on(OrdersActions.initializeFromRoute, (state, { selectedOrderId, filters }) => ({
+      ...state,
+      selectedOrderId,
+      filters,
     })),
     on(OrdersActions.loadOrdersSuccess, (state, { orders }) => ({
       ...state,
@@ -407,6 +436,7 @@ export const selectEmptyStateVisible = createSelector(
 
 ```ts
 import { inject, Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { catchError, map, of, switchMap, withLatestFrom } from 'rxjs';
 import { Store } from '@ngrx/store';
@@ -419,6 +449,14 @@ export class OrdersEffects {
   private readonly actions$ = inject(Actions);
   private readonly store = inject(Store);
   private readonly ordersApi = inject(OrdersApiService);
+  private readonly router = inject(Router);
+
+  readonly initializeFromRoute$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(OrdersActions.initializeFromRoute),
+      map(() => OrdersActions.loadOrders())
+    )
+  );
 
   readonly loadOrders$ = createEffect(() =>
     this.actions$.pipe(
@@ -448,6 +486,17 @@ export class OrdersEffects {
       )
     )
   );
+
+  readonly syncFiltersToUrl$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(OrdersActions.updateFilters),
+        map(({ filters }) => {
+          void this.router.navigate(['/orders'], { queryParams: filters });
+        })
+      ),
+    { dispatch: false }
+  );
 }
 ```
 
@@ -455,7 +504,9 @@ export class OrdersEffects {
 
 ```ts
 import { Injectable, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
+import { OrdersFilter } from '../models/order-filter.model';
 import { OrdersActions } from './orders.actions';
 import {
   selectEmptyStateVisible,
@@ -467,6 +518,7 @@ import {
 
 @Injectable()
 export class OrdersFacade {
+  private readonly route = inject(ActivatedRoute);
   private readonly store = inject(Store);
 
   readonly orders = this.store.selectSignal(selectOrders);
@@ -474,6 +526,17 @@ export class OrdersFacade {
   readonly isLoading = this.store.selectSignal(selectIsLoading);
   readonly error = this.store.selectSignal(selectError);
   readonly emptyStateVisible = this.store.selectSignal(selectEmptyStateVisible);
+
+  initialize(): void {
+    this.store.dispatch(
+      OrdersActions.initializeFromRoute({
+        selectedOrderId: this.route.snapshot.paramMap.get('orderId'),
+        filters: {
+          status: this.route.snapshot.queryParamMap.get('status') ?? 'all',
+        },
+      })
+    );
+  }
 
   loadOrders(): void {
     this.store.dispatch(OrdersActions.loadOrders());
@@ -511,7 +574,7 @@ export class OrdersListPageComponent {
   readonly emptyStateVisible = this.ordersFacade.emptyStateVisible;
 
   ngOnInit(): void {
-    this.ordersFacade.loadOrders();
+    this.ordersFacade.initialize();
   }
 }
 ```
@@ -620,7 +683,8 @@ AI agents must follow these rules when generating or editing classic NgRx Store 
 7. Prefer `inject()` over constructor injection.
 8. Do not introduce repository or mapper layers by default.
 9. Keep awaitable facade/store methods rare and intentional.
-10. If the feature does not need this much structure, prefer Signal Store or facade-only state instead.
+10. Model route params and query params explicitly when the feature must support deep links, shareable views, or router-driven workflows.
+11. If the feature does not need this much structure, prefer Signal Store or facade-only state instead.
 
 ## Decision Matrix
 
@@ -631,6 +695,7 @@ AI agents must follow these rules when generating or editing classic NgRx Store 
 | Complex event-driven state with reducers/effects/selectors | `state-ngrx-store.md` |
 | Small feature with minimal workflows | facade |
 | Large feature with many async workflows and richer transitions | classic NgRx Store |
+| Router-driven filters or selection participating in broader workflows | classic NgRx Store can be appropriate |
 
 ## Final Standard
 

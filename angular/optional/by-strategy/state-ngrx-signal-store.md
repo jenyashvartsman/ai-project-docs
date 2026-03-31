@@ -61,6 +61,7 @@ Default rule:
 5. Keep methods business-oriented, not patch-oriented.
 6. Prefer one primary store per non-trivial feature.
 7. Prefer `inject()` over constructor injection in examples and implementation.
+8. Treat route params and query params as first-class state inputs when the URL should represent the current feature view.
 
 ## Recommended Structure
 
@@ -120,6 +121,7 @@ A Signal Store may:
 - hold feature-local writable state
 - expose computed state
 - handle feature load/save/delete/filter workflows
+- coordinate URL-backed filter, selection, and pagination state
 - coordinate API calls
 - centralize state transitions
 
@@ -151,6 +153,7 @@ Rules:
 - keep state serializable when practical
 - store view-relevant state, not every temporary variable
 - derive computed state instead of persisting every boolean flag
+- include route/query param derived values when they are part of the feature contract
 
 ## Public API Design
 
@@ -229,10 +232,28 @@ Rules:
 - set error explicitly on failure
 - do not force components to infer loading/error from missing data
 
+## URL State Rule
+
+Use route params and query params as state inputs when the URL should preserve the current feature view.
+
+Good fits:
+
+- route params for selected entity or nested context
+- query params for filters, sorting, search, pagination, tabs, and view mode
+
+Rules:
+
+- the store should own route/query param reads when URL state is part of the feature contract
+- if a facade exists, it may sit on top, but route-backed state should still be owned in the state layer
+- presentation components must not read router state directly
+- do not keep a conflicting second source of truth when the URL already defines the state
+- normalize missing or invalid params before patching store state
+
 ## Feature Store Example
 
 ```ts
 import { computed, inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   patchState,
   signalStore,
@@ -273,7 +294,22 @@ export const OrdersStore = signalStore(
       () => !store.isLoading() && !store.hasOrders() && !store.error()
     ),
   })),
-  withMethods((store, ordersApi = inject(OrdersApiService)) => ({
+  withMethods((
+    store,
+    ordersApi = inject(OrdersApiService),
+    route = inject(ActivatedRoute),
+    router = inject(Router)
+  ) => ({
+    initialize(): void {
+      patchState(store, {
+        selectedOrderId: route.snapshot.paramMap.get('orderId'),
+        filters: {
+          status: route.snapshot.queryParamMap.get('status') ?? 'all',
+        },
+      });
+      store.loadOrders();
+    },
+
     loadOrders(): void {
       patchState(store, { isLoading: true, error: null });
 
@@ -296,10 +332,12 @@ export const OrdersStore = signalStore(
 
     selectOrder(id: string): void {
       patchState(store, { selectedOrderId: id });
+      void router.navigate(['/orders', id]);
     },
 
     updateFilters(filters: OrdersFilter): void {
       patchState(store, { filters });
+      void router.navigate(['/orders'], { queryParams: filters });
       store.loadOrders();
     },
 
@@ -338,7 +376,7 @@ export class OrdersListPageComponent {
   readonly emptyStateVisible = this.ordersStore.emptyStateVisible;
 
   ngOnInit(): void {
-    this.ordersStore.loadOrders();
+    this.ordersStore.initialize();
   }
 }
 ```
@@ -566,6 +604,7 @@ AI agents must follow these rules when generating or editing NgRx Signal Store b
 8. Prefer `inject()` over constructor injection.
 9. Add a facade on top of the store only when it improves the public API.
 10. Keep components from calling APIs directly.
+11. Model route params and query params explicitly when the feature must support deep links, shareable filters, or refresh restore.
 
 ## Decision Matrix
 
@@ -575,6 +614,7 @@ AI agents must follow these rules when generating or editing NgRx Signal Store b
 | Dedicated feature state container with richer state transitions | `state-ngrx-signal-store.md` |
 | Fire-and-forget API load | store method with observable `subscribe` and `finalize` |
 | Awaitable workflow after delete/save | `async` method with `firstValueFrom` |
+| URL-backed filter/search/page state | store or facade-owned state layer |
 | Global auth/session state | root store in `app/core` |
 
 ## Final Standard
