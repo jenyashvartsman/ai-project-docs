@@ -81,8 +81,8 @@ Use route params and search params as part of feature state when the URL should 
 Rules:
 
 - the store should own normalized URL-backed state when several components depend on it
-- a small feature hook may sit on top of Zustand and translate router state into store actions
-- page components should not re-own URL parsing if the store already treats it as feature state
+- a small feature hook on top of Zustand should read router state and initialize the store
+- page components should not re-own URL parsing if the Zustand state layer already treats it as feature state
 - presentation components must not read router state directly
 
 ## Deep Example
@@ -178,7 +178,9 @@ export const useVisibleOrders = () =>
   });
 ```
 
-## Container Usage Example
+## Feature Hook On Top Of Zustand
+
+When URL state belongs to the feature contract, prefer a small hook on top of the store to own router reads.
 
 ```tsx
 import { useEffect } from 'react';
@@ -186,9 +188,10 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { useOrdersStore } from '../stores/orders-store';
 import { useVisibleOrders } from '../stores/orders-selectors';
 
-export function OrdersPage() {
+export function useOrdersPageState() {
   const { orderId } = useParams<{ orderId?: string }>();
   const [searchParams] = useSearchParams();
+
   const visibleOrders = useVisibleOrders();
   const isLoading = useOrdersStore((state) => state.isLoading);
   const error = useOrdersStore((state) => state.error);
@@ -209,6 +212,26 @@ export function OrdersPage() {
     void loadOrders();
   }, [loadOrders]);
 
+  return {
+    orders: visibleOrders,
+    isLoading,
+    error,
+    activeFilter,
+    setActiveFilter,
+    deleteOrder,
+  };
+}
+```
+
+## Container Usage Example
+
+```tsx
+import { useOrdersPageState } from '../hooks/use-orders-page-state';
+
+export function OrdersPage() {
+  const { orders, isLoading, error, activeFilter, setActiveFilter, deleteOrder } =
+    useOrdersPageState();
+
   if (isLoading) {
     return <p>Loading orders...</p>;
   }
@@ -217,7 +240,7 @@ export function OrdersPage() {
     <>
       {error && <p>{error}</p>}
       <OrderFilters value={activeFilter} onChange={setActiveFilter} />
-      <OrderList orders={visibleOrders} onDelete={deleteOrder} />
+      <OrderList orders={orders} onDelete={deleteOrder} />
     </>
   );
 }

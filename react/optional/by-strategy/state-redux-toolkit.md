@@ -188,7 +188,9 @@ export const selectVisibleOrders = (state: RootState) => {
 };
 ```
 
-## Container Usage Example
+## Feature Hook On Top Of Redux
+
+When URL state belongs to the feature contract, prefer a feature hook that owns router reads and dispatches the initialization actions.
 
 ```tsx
 import { useEffect } from 'react';
@@ -204,8 +206,9 @@ import {
   selectOrdersError,
   selectVisibleOrders,
 } from '../state/orders-selectors';
+import type { OrdersFilter } from '../state/orders-types';
 
-export function OrdersPage() {
+export function useOrdersPageState() {
   const { orderId } = useParams<{ orderId?: string }>();
   const [searchParams] = useSearchParams();
   const dispatch = useAppDispatch();
@@ -225,11 +228,28 @@ export function OrdersPage() {
     void dispatch(loadOrders());
   }, [dispatch]);
 
+  return {
+    orders,
+    error,
+    setActiveFilter: (filter: OrdersFilter) => dispatch(setActiveFilter(filter)),
+    deleteOrder: (id: string) => void dispatch(deleteOrder(id)),
+  };
+}
+```
+
+## Container Usage Example
+
+```tsx
+import { useOrdersPageState } from '../hooks/use-orders-page-state';
+
+export function OrdersPage() {
+  const { orders, error, setActiveFilter, deleteOrder } = useOrdersPageState();
+
   return (
     <>
       {error && <p>{error}</p>}
-      <OrderList orders={orders} onDelete={(id) => void dispatch(deleteOrder(id))} />
-      <OrderFilters onChange={(filter) => dispatch(setActiveFilter(filter))} />
+      <OrderList orders={orders} onDelete={deleteOrder} />
+      <OrderFilters onChange={setActiveFilter} />
     </>
   );
 }

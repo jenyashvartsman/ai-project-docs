@@ -71,7 +71,7 @@ export const ordersKeys = {
 ## Deep Example
 
 ```ts
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteOrderRequest, getOrders } from '../api/orders-api';
 
