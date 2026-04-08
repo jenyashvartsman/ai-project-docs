@@ -6,13 +6,13 @@ Update the container, presentation components, and state layer so a user can del
 
 # Guides
 
-- `../required/always-on/feature.md`
-- `../required/always-on/http-api.md`
-- `../required/always-on/change-detection.md`
-- `../required/always-on/accessibility.md`
-- `../required/always-on/error-handling.md`
-- `../required/always-on/testing.md`
-- `../optional/by-strategy/state-feature-hooks.md`
+- `../skills/required/feature.md`
+- `../skills/required/http-api.md`
+- `../skills/required/change-detection.md`
+- `../skills/required/accessibility.md`
+- `../skills/required/error-handling.md`
+- `../skills/required/testing.md`
+- `../skills/optional/by-strategy/state-feature-hooks.md`
 
 # Requirements
 

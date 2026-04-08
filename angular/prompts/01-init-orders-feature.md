@@ -6,15 +6,15 @@ Set up the feature folder structure, route entry page, feature API service, DTOs
 
 # Guides
 
-- `../required/always-on/directories.md`
-- `../required/always-on/naming.md`
-- `../required/always-on/routing.md`
-- `../required/always-on/feature.md`
-- `../required/always-on/http-api.md`
-- `../required/always-on/change-detection.md`
-- `../required/always-on/error-handling.md`
-- `../optional/by-strategy/state-selection.md`
-- `../optional/by-strategy/state-facade.md`
+- `../skills/required/directories.md`
+- `../skills/required/naming.md`
+- `../skills/required/routing.md`
+- `../skills/required/feature.md`
+- `../skills/required/http-api.md`
+- `../skills/required/change-detection.md`
+- `../skills/required/error-handling.md`
+- `../skills/optional/by-strategy/state-selection.md`
+- `../skills/optional/by-strategy/state-facade.md`
 
 # Requirements
 

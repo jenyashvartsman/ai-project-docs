@@ -6,13 +6,13 @@ Use the existing route-level page as the container. Add presentation components 
 
 # Guides
 
-- `../required/always-on/feature.md`
-- `../required/always-on/ui-components.md`
-- `../required/always-on/change-detection.md`
-- `../required/always-on/accessibility.md`
-- `../required/always-on/error-handling.md`
-- `../required/always-on/testing.md`
-- `../optional/by-strategy/style-bem.md`
+- `../skills/required/feature.md`
+- `../skills/required/ui-components.md`
+- `../skills/required/change-detection.md`
+- `../skills/required/accessibility.md`
+- `../skills/required/error-handling.md`
+- `../skills/required/testing.md`
+- `../skills/optional/by-strategy/style-bem.md`
 
 # Requirements
 

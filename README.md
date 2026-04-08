@@ -32,9 +32,9 @@ vue/
 
 Each framework folder should contain the same documentation split:
 
-- `required/always-on`
-- `optional/by-strategy`
-- `optional/by-app-type`
+- `skills/required`
+- `skills/optional/by-strategy`
+- `skills/optional/by-app-type`
 
 Each framework folder should also contain:
 
@@ -85,7 +85,7 @@ When adding docs for a new framework, keep the same high-level structure:
 1. Create a top-level framework folder.
 2. Add a framework-specific `README.md`.
 3. Use the shared split:
-   `required/always-on`, `optional/by-strategy`, and `optional/by-app-type`.
+   `skills/required`, `skills/optional/by-strategy`, and `skills/optional/by-app-type`.
 4. Add framework-specific prompt files under that framework's `prompts/` folder using the shared structure in this root README.
 5. Write docs so developers and AI agents can both use them as implementation rules.
 6. Prefer practical conventions over broad theory.
